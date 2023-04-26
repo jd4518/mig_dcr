@@ -81,16 +81,7 @@ public class Migration
             			+ "and mmm.sales_model_code <> '' and upper(mmm.model_id) = ? or upper(mmm.original_model_id) = ?;";
         		pstmt = conn.prepareStatement(selectMd);
         		String defaultDCRPath = "/default/main/LGE/"+locale.toUpperCase()+"/WORKAREA/wa/"; 
-//        		defaultDCRPath = "C:\\\\";
-//        		String pdpRootPath = "/default/main/LGE/"+locale.toUpperCase()+"/WORKAREA/wa/sites/"+locale.toLowerCase()+"/products";
-//    			System.out.println(pdpRootPath);
-        		
-//    			pdpRootPath = "C:\\pdp";
-    			
-//    			ArrayList<Path> pdpPath = (ArrayList<Path>) Files.walk(Paths.get(pdpRootPath)).filter(Files::isRegularFile).collect(Collectors.toList());
     			List<String> line = Files.readAllLines(Paths.get(p.getProperty("dcrList")));
-    			
-    			
     			if(endCount>line.size()) {
     				endCount = line.size();
     			}
@@ -98,15 +89,13 @@ public class Migration
     			System.out.println("END ::: " + endCount);
     			String dcrName = "";
     			startCount = 0;
-    			endCount = 1;
+//    			endCount = 1;
     			String dcrType = "";
 				for( int c = startCount ; c < endCount; c++) {
 					try {
 					Path pdp = Paths.get(line.get(c));
 					
 //					Path pdp = Paths.get("C:\\default.xml");
-//					String pdp = "templatedata/Product/Support_Product/data/uk/default.xml";
-//					Path pdp = Paths.get(p.getProperty("md")); 
 					dcrName = StringUtils.replace(pdp.toString(),defaultDCRPath,"");
 					if(dcrName.lastIndexOf("/")>0) {
 					dcrType = p.getProperty(dcrName.substring(0,dcrName.lastIndexOf("/")));
@@ -115,31 +104,19 @@ public class Migration
 					}
 					System.out.println(dcrName);
 					System.out.println(dcrType);
-	//				pageName = StringUtils.replace(pdp,".page","");
 					System.out.println("--------------------------------------------------------------"+pageName+"------------------------------START-----------------------------------");
-//					FileInputStream fis = new FileInputStream(pdp.toString());
 					
 					XMLInputFactory xmlInFact = XMLInputFactory.newInstance();
-//					XMLEventReader reader = xmlInFact.createXMLEventReader(fis);
-				    
-//					XMLEvent event = null;
-//					XMLEvent dcr = null;
 					
 					// Component ID를 뽑기 위한 패턴
-					Pattern pattern = Pattern.compile("(?<=[(])(.+?)(?=[)])");
-					Matcher matcher = null;
-					
 					Pattern pattern2 = Pattern.compile("[mM][dD]\\d{8}|[bB][dD]\\\\d{8}");
 					Matcher matcher2 = null;
-					String dcrPath = "";
 					XMLEvent dcrXml = null;
 					int pb = 0;
 					int fs = 0;
 					int b2b2c = 0;
 					int sup = 0;
 					int i = 0;
-//					dcrPath = dcr.toString();
-//					System.out.println("defaultDCRPath+dcrPath ::: " + defaultDCRPath+dcrPath);
 					System.out.println(pdp.toString());
 					System.out.println(pdp.toString().replace(defaultDCRPath, ""));
 					FileInputStream dcrFis = new FileInputStream(pdp.toString());
@@ -186,7 +163,6 @@ public class Migration
 											dval = RegExUtils.replaceAll(dval,mid,rs.getString(1));
 										}
 									}
-	//								System.out.println("dcrName ::: " + dcrName +" :::: " + did + " :::: " + dval);
 									dcrMap.put("locale", locale.toUpperCase());
 									dcrMap.put("dcrName", dcrName);
 									dcrMap.put("attr", did);
@@ -212,7 +188,6 @@ public class Migration
 					}else if(dcrType.equals("supportProduct")) {
 						while(reader2.hasNext()) {
 							dcrXml = reader2.nextEvent();
-//							System.out.println(dcrXml.toString());
 							if(dcrXml.isStartElement()) {
 								if(id.equals("")) {
 									id += dcrXml.asStartElement().getName().toString().equals("Root") ? "" : dcrXml.asStartElement().getName().toString();
@@ -223,12 +198,9 @@ public class Migration
 							
 							if(p.getProperty(id)!= null) {
 								if(dcrXml.isStartElement()) {
-//									did = p.getProperty(id);
 									if(id.equals("b2cSupportLink")) {
-//										did = p.getProperty(id);
 										type = "b2c";
 									}else if(id.equals("b2bSupportLink")) {
-//										did = p.getProperty(id);
 										type = "b2b";
 									}else if(id.equals("supportOption")) {
 										type = "sup";
@@ -252,18 +224,15 @@ public class Migration
 									
 									
 									if(id.equals("b2cSupportLink")) {
-//										did = p.getProperty(id);
 										dval="b2c";
 										b2b2c++;
 									}else if(id.equals("b2bSupportLink")) {
-//										did = p.getProperty(id);
 										dval="b2b";
 										b2b2c++;
 									}else if(id.equals("supportOption")) {
 										sup++;
 									}
 									
-									System.out.println(id + " :::: " + did + " ::::: " + dval);
 									if(!did.equals("")) {
 										dcrMap.put("locale", locale.toUpperCase());
 										dcrMap.put("dcrName", dcrName);
