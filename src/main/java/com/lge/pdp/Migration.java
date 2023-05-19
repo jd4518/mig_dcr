@@ -39,6 +39,7 @@ public class Migration
 			Properties p = new Properties();
 			Connection conn = null;
 			PreparedStatement pstmt = null;
+			PreparedStatement pstmt2 = null;
         	ResultSet rs = null;
         	String pageName = "";
         	
@@ -64,22 +65,25 @@ public class Migration
         	
         	ArrayList<Map<String,String>> dcrList = new ArrayList<Map<String,String>>();
         	for(String locale : locales.split(",")) {
-        		String selectMd = "select \n"
-            			+ " concat(sales_model_code\n"
-            			+ "			,if(concat('.',sales_suffix_code)<>'.'\n"
-            			+ "				,concat('.',sales_suffix_code)\n"
-            			+ "				,'')\n"
-            			+ "			,if(concat('.',affiliate_code)<>'.'\n"
-            			+ "				,concat('.',affiliate_code)\n"
-            			+ "				,'')\n"
-            			+ "			,'.'\n"
-            			+ "			,locale_code\n"
-            			+ "			,'.'\n"
-            			+ "			,if(biz_type = 'B2C','C','B')) as sku \n"
-            			+ "from mkt_model_m mmm \n"
-            			+ "where mmm.locale_code = '"+locale.toUpperCase()+"'\n"
-            			+ "and mmm.sales_model_code <> '' and upper(mmm.model_id) = ? or upper(mmm.original_model_id) = ?;";
+//        		String selectMd = "select \n"
+//            			+ " concat(sales_model_code\n"
+//            			+ "			,if(concat('.',sales_suffix_code)<>'.'\n"
+//            			+ "				,concat('.',sales_suffix_code)\n"
+//            			+ "				,'')\n"
+//            			+ "			,if(concat('.',affiliate_code)<>'.'\n"
+//            			+ "				,concat('.',affiliate_code)\n"
+//            			+ "				,'')\n"
+//            			+ "			,'.'\n"
+//            			+ "			,locale_code\n"
+//            			+ "			,'.'\n"
+//            			+ "			,if(biz_type = 'B2C','C','B')) as sku \n"
+//            			+ "from mkt_model_m mmm \n"
+//            			+ "where mmm.locale_code = '"+locale.toUpperCase()+"'\n"
+//            			+ "and mmm.sales_model_code <> '' and upper(mmm.model_id) = ? or upper(mmm.original_model_id) = ?;";
+        		String selectMd = "select sku from mig_sku_mapping where locale_code = '"+locale.toUpperCase()+"' and model_id = ? ;";
+        		String selectBd = "select sku from mig_sku_mapping where locale_code = '"+locale.toUpperCase()+"' and original_model_id = ? ;";
         		pstmt = conn.prepareStatement(selectMd);
+        		pstmt2 = conn.prepareStatement(selectBd);
         		String defaultDCRPath = "/default/main/LGE/"+locale.toUpperCase()+"/WORKAREA/wa/"; 
     			List<String> line = Files.readAllLines(Paths.get(p.getProperty("dcrList")));
     			if(endCount>line.size()) {
@@ -109,7 +113,7 @@ public class Migration
 					XMLInputFactory xmlInFact = XMLInputFactory.newInstance();
 					
 					// Component ID를 뽑기 위한 패턴
-					Pattern pattern2 = Pattern.compile("[mM][dD]\\d{8}|[bB][dD]\\\\d{8}");
+					Pattern pattern2 = Pattern.compile("[mM][dD]\\d{8}|[bB][dD]\\d{8}");
 					Matcher matcher2 = null;
 					XMLEvent dcrXml = null;
 					int pb = 0;
@@ -156,11 +160,20 @@ public class Migration
 									matcher2 = pattern2.matcher(dval);
 									while(matcher2.find()) {
 										String mid= matcher2.group();
-										pstmt.setString(1, mid.toUpperCase());
-										pstmt.setString(2, mid.toUpperCase());
-										rs = pstmt.executeQuery();
-										if(rs.next()) {
-											dval = RegExUtils.replaceAll(dval,mid,rs.getString(1));
+										if(mid.toLowerCase().indexOf("md")>-1) {
+											pstmt.setString(1, mid.toUpperCase());
+											pstmt.setString(2, mid.toUpperCase());
+											rs = pstmt.executeQuery();
+											if(rs.next()) {
+												dval = RegExUtils.replaceAll(dval,mid,rs.getString(1));
+											}
+										}else {
+											pstmt2.setString(1, mid.toUpperCase());
+											pstmt2.setString(2, mid.toUpperCase());
+											rs = pstmt2.executeQuery();
+											if(rs.next()) {
+												dval = RegExUtils.replaceAll(dval,mid,rs.getString(1));
+											}
 										}
 									}
 									dcrMap.put("locale", locale.toUpperCase());
@@ -246,10 +259,6 @@ public class Migration
 							}
 							
 							if(dcrXml.isEndElement()) {
-								if(id.equals("productBasic")) {
-									pr = "N";
-									fs = 0;
-								}
 								if(id.lastIndexOf("/")>0) {
 									id = StringUtils.replace(id, id.substring(id.lastIndexOf("/"), id.length()), "");
 								}else {
@@ -280,6 +289,9 @@ public class Migration
         	if (conn != null && !conn.isClosed()) {
         		if(pstmt!=null && !pstmt.isClosed()) {
         			pstmt.close();
+        		}
+        		if(pstmt2!=null && !pstmt2.isClosed()) {
+        			pstmt2.close();
         		}
 				conn.close();
 			}

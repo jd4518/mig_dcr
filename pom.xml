@@ -81,7 +81,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-							<mainClass>com.lge.pdp.Migration</mainClass>
+							<mainClass>com.lge.pdp.Dcr</mainClass>
 						</manifest>
                     </archive>
                 </configuration>
