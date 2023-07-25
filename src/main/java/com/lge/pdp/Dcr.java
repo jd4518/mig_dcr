@@ -32,8 +32,6 @@ import javax.xml.stream.events.XMLEvent;
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import com.lge.pdp.model.PdpExtract;
-
 public class Dcr
 {
 	
@@ -61,239 +59,232 @@ public class Dcr
             System.out.println("시작시간 :: " + sf.format(start));
         	System.out.println(start);
         	System.out.println("======================== upload START ========================");
-        	ArrayList<Map<String,String>> dcrList = new ArrayList<Map<String,String>>();
-        	
-        	for(String locale : locales.split(",")) {
-        		String selectMd = "select sku from mig_sku_mapping where locale = '"+locale.toUpperCase()+"' and model_id = ? ;";
-        		String selectBd = "select sku from mig_sku_mapping where locale = '"+locale.toUpperCase()+"' and original_model_id = ? ;";
-        		pstmt = conn.prepareStatement(selectMd);
-        		pstmt2 = conn.prepareStatement(selectBd);
-        		String dcrName = "";
-        		String dcrType = "";
-        		String defaultDCRPath = "/default/main/LGE/"+locale.toUpperCase()+"/WORKAREA/wa/"; 
-        		String[] dcrPath = p.getProperty("dcrPathList").split(",");
-        		for(String dp : dcrPath) {
-        			if(p.getProperty(dp) != null && !p.getProperty(dp).equals("")) {
-	        			dcrType = p.getProperty(dp);
-	        			dp = dp.replace("{1}", locale.toUpperCase());
-	        			dp = dp.replace("{2}", locale.toLowerCase());
-	        			System.out.println("dcrPath :: " + dp);
-	        			List<Path> dcr = Files.walk(Paths.get(dp)).filter(Files::isRegularFile).collect(Collectors.toList());
-	        		/*
-	    			List<String> line = Files.readAllLines(Paths.get(p.getProperty("dcrList")));
-	    			if(endCount>line.size()) {
-	    				endCount = line.size();
-	    			}
-	    			System.out.println("START ::: " + startCount);
-	    			System.out.println("END ::: " + endCount);
-	    			String dcrName = "";
-	    			startCount = 0;
-	//    			endCount = 1;
-	    			String dcrType = "";
-	    			*/
-					for( Path pdp : dcr) {
-						try {
-						dcrName = StringUtils.replace(pdp.toString(),defaultDCRPath,"");
-						/*
-						if(dcrName.lastIndexOf("/")>0) {
-						dcrType = p.getProperty(dcrName.substring(0,dcrName.lastIndexOf("/")));
-						}else{
-							dcrType = p.getProperty(dcrName.replace("C:\\", ""));
-						}
-						*/
-						System.out.println(dcrName);
-						System.out.println(dcrType);
-						System.out.println("--------------------------------------------------------------"+pageName+"------------------------------START-----------------------------------");
-						
-						XMLInputFactory xmlInFact = XMLInputFactory.newInstance();
-						
-						// Component ID를 뽑기 위한 패턴
-						Pattern pattern2 = Pattern.compile("[mM][dD]\\d{8}|[bB][dD]\\d{8}");
-						Matcher matcher2 = null;
-						XMLEvent dcrXml = null;
-						int pb = 0;
-						int fs = 0;
-						int b2b2c = 0;
-						int sup = 0;
-						int i = 0;
-						System.out.println(pdp.toString());
-						System.out.println(pdp.toString().replace(defaultDCRPath, ""));
-						FileInputStream dcrFis = new FileInputStream(pdp.toString());
-						XMLEventReader reader2 = xmlInFact.createXMLEventReader(dcrFis);
-						String id = "";
-						String pr = "N";
-						String did = "";
-						String dval = "";
-						String type = "";
-						if(dcrType.equals("stepup")) {
-							while(reader2.hasNext()) {
-								dcrXml = reader2.nextEvent();
-								
-								if(dcrXml.isStartElement()) {
-									if(id.equals("")) {
-										id += dcrXml.asStartElement().getName().toString().equals("Root") ? "" : dcrXml.asStartElement().getName().toString();
-									}else {
-										id += "/"+dcrXml.asStartElement().getName().toString();
-									}
-									if(id.equals("productBasic")) {
-										pb++;
-										pr = "Y";
-									}
-								}
-								if(p.getProperty(id)!= null) {
+        	String defaultDCRPath = getMessage("defaultDCRPath",p);
+        	System.out.println(defaultDCRPath);
+        	if(defaultDCRPath!=null && !defaultDCRPath.equals("") ) {
+	        	for(String locale : locales.split(",")) {
+	        		defaultDCRPath = defaultDCRPath.replace("{1}", locale.toUpperCase());
+	        		String selectMd = "select sku from mkt_model_m where locale_code = '"+locale.toUpperCase()+"' and model_id = ? ;";
+	        		String selectBd = "select sku from mkt_model_m where locale_code = '"+locale.toUpperCase()+"' and original_model_id = ? ;";
+	        		pstmt = conn.prepareStatement(selectMd);
+	        		pstmt2 = conn.prepareStatement(selectBd);
+	        		String dcrName = "";
+	        		String dcrType = "";
+	        		 
+	        		String[] dcrPath = p.getProperty("dcrPathList").split(",");
+	        		for(String dp : dcrPath) {
+	        			ArrayList<Map<String,String>> dcrList = new ArrayList<Map<String,String>>();
+	        			if(p.getProperty(dp) != null && !p.getProperty(dp).equals("")) {
+		        			dcrType = p.getProperty(dp);
+		        			dp = dp.replace("{1}", locale.toUpperCase());
+		        			dp = dp.replace("{2}", locale.toLowerCase());
+		        			List<Path> dcr = Files.walk(Paths.get(defaultDCRPath+"/"+dp)).filter(Files::isRegularFile).collect(Collectors.toList());
+						for( Path pdp : dcr) {
+							try {
+							dcrName = StringUtils.replace(pdp.toString(),defaultDCRPath,"");
+							dcrName = RegExUtils.replaceAll(dcrName, "\\\\", "/");
+							dcrName = RegExUtils.replaceFirst(dcrName, "[\\\\/]", "");
+							System.out.println("--------------------------------------------------------------"+pageName+"------------------------------START-----------------------------------");
+							
+							XMLInputFactory xmlInFact = XMLInputFactory.newInstance();
+							
+							Pattern pattern2 = Pattern.compile("[mM][dD]\\d{8}|[bB][dD]\\d{8}");
+							Matcher matcher2 = null;
+							XMLEvent dcrXml = null;
+							int pb = 0;
+							int fs = 0;
+							int b2b2c = 0;
+							int sup = 0;
+							int i = 0;
+							
+							FileInputStream dcrFis = new FileInputStream(pdp.toString());
+							XMLEventReader reader2 = xmlInFact.createXMLEventReader(dcrFis);
+							String id = "";
+							String pr = "N";
+							String did = "";
+							String dval = "";
+							String type = "";
+							if(dcrType.equals("stepup")) {
+								while(reader2.hasNext()) {
+									dcrXml = reader2.nextEvent();
+									
 									if(dcrXml.isStartElement()) {
-										if(dcrXml.asStartElement().getName().toString().equals("featureSpec")) {
-											fs++;
+										if(id.equals("")) {
+											id += dcrXml.asStartElement().getName().toString().equals("Root") ? "" : dcrXml.asStartElement().getName().toString();
+										}else {
+											id += "/"+dcrXml.asStartElement().getName().toString();
 										}
-										did = p.getProperty(id);
-									}else if(dcrXml.isCharacters()) {
-										dval += dcrXml.toString();
-									}else {
-										dcrMap = new HashMap<String,String>();
-										did = StringUtils.replace(did, "{1}", "item"+(pb-1));
-										did = StringUtils.replace(did, "{2}", "item"+(fs-1));
-										matcher2 = pattern2.matcher(dval);
-										while(matcher2.find()) {
-											String mid= matcher2.group();
-											if(mid.toLowerCase().indexOf("md")>-1) {
-												pstmt.setString(1, mid.toUpperCase());
-												rs = pstmt.executeQuery();
-												if(rs.next()) {
-													dval = RegExUtils.replaceAll(dval,mid,rs.getString(1));
-												}
-											}else {
-												pstmt2.setString(1, mid.toUpperCase());
-												rs = pstmt2.executeQuery();
-												if(rs.next()) {
-													dval = RegExUtils.replaceAll(dval,mid,rs.getString(1));
+										if(id.equals("productBasic")) {
+											pb++;
+											pr = "Y";
+										}
+									}
+									if(p.getProperty(id)!= null) {
+										if(dcrXml.isStartElement()) {
+											if(dcrXml.asStartElement().getName().toString().equals("featureSpec")) {
+												fs++;
+											}
+											did = p.getProperty(id);
+										}else if(dcrXml.isCharacters()) {
+											dval += dcrXml.toString();
+										}else {
+											dcrMap = new HashMap<String,String>();
+											did = StringUtils.replace(did, "{1}", "item"+(pb-1));
+											did = StringUtils.replace(did, "{2}", "item"+(fs-1));
+											matcher2 = pattern2.matcher(dval);
+											while(matcher2.find()) {
+												String mid= matcher2.group();
+												if(mid.toLowerCase().indexOf("md")>-1) {
+													pstmt.setString(1, mid.toUpperCase());
+													rs = pstmt.executeQuery();
+													if(rs.next()) {
+														dval = RegExUtils.replaceAll(dval,mid,rs.getString(1));
+													}
+												}else {
+													pstmt2.setString(1, mid.toUpperCase());
+													rs = pstmt2.executeQuery();
+													if(rs.next()) {
+														dval = RegExUtils.replaceAll(dval,mid,rs.getString(1));
+													}
 												}
 											}
-										}
-										dcrMap.put("locale", locale.toUpperCase());
-										dcrMap.put("dcrName", dcrName);
-										dcrMap.put("attr", did);
-										if(did.indexOf("imageRef")>-1) {
-											try {
-												System.out.println("dval :: " +dval);
-												Path imgPath = Paths.get(dval);
-												String fName = imgPath.getFileName().toString();
-												System.out.println("fName :: " +fName);
-												String path = imgPath.getParent().toString();
-												System.out.println("path :: " +path);
-												path = RegExUtils.replaceAll(path, "[\\\\%#{}^;+:*?.|&\\t\\[\\] ]", "_");
-												fName = RegExUtils.replaceAll(fName, "[*/:\\[\\]\\\\|#%{}?&]", "_");
-												dval = path + fName;
-											}catch(Exception e) {
-												System.out.println("dval :: " + dval);
-											}
-										}
-										dcrMap.put("val", dval);
-										did="";
-										dval="";
-										dcrList.add(dcrMap);
-									}
-								}
-								
-								if(dcrXml.isEndElement()) {
-									if(id.equals("productBasic")) {
-										pr = "N";
-										fs = 0;
-									}
-									if(id.lastIndexOf("/")>0) {
-										id = StringUtils.replace(id, id.substring(id.lastIndexOf("/"), id.length()), "");
-									}else {
-										id = "";
-									}
-								}
-							}
-						}else if(dcrType.equals("supportProduct")) {
-							while(reader2.hasNext()) {
-								dcrXml = reader2.nextEvent();
-								if(dcrXml.isStartElement()) {
-									if(id.equals("")) {
-										id += dcrXml.asStartElement().getName().toString().equals("Root") ? "" : dcrXml.asStartElement().getName().toString();
-									}else {
-										id += "/"+dcrXml.asStartElement().getName().toString();
-									}
-								}
-								
-								if(p.getProperty(id)!= null) {
-									if(dcrXml.isStartElement()) {
-										if(id.equals("b2cSupportLink")) {
-											type = "b2c";
-										}else if(id.equals("b2bSupportLink")) {
-											type = "b2b";
-										}else if(id.equals("supportOption")) {
-											type = "sup";
-										}
-									}else if(dcrXml.isCharacters()) {
-										dval += dcrXml.toString();
-									}else {
-										dcrMap = new HashMap<String,String>();
-										did = p.getProperty(id);
-										
-										if(type.equals("b2c")) {
-											did = StringUtils.replace(did, "{1}", "item"+b2b2c);
-											did = StringUtils.replace(did, "{2}", (b2b2c+1)+"");
-										}else if(type.equals("b2b")) {
-											did = StringUtils.replace(did, "{1}", "item"+b2b2c);
-											did = StringUtils.replace(did, "{2}", (b2b2c+1)+"");
-										}else if(type.equals("sup")) {
-											did = StringUtils.replace(did, "{1}", "item"+sup);
-											did = StringUtils.replace(did, "{2}", (sup+1)+"");
-										}
-										
-										
-										if(id.equals("b2cSupportLink")) {
-											dval="b2c";
-											b2b2c++;
-										}else if(id.equals("b2bSupportLink")) {
-											dval="b2b";
-											b2b2c++;
-										}else if(id.equals("supportOption")) {
-											sup++;
-										}
-										
-										if(!did.equals("")) {
 											dcrMap.put("locale", locale.toUpperCase());
 											dcrMap.put("dcrName", dcrName);
 											dcrMap.put("attr", did);
+											if(did.indexOf("imageRef")>-1) {
+												try {
+													Path imgPath = Paths.get(dval);
+													String fName = imgPath.getFileName().toString();
+													String path = imgPath.getParent().toString();
+													path = RegExUtils.replaceAll(path, "[\\\\]", "/");
+													path = RegExUtils.replaceAll(path, "[\\\\%#{}^;+:*?.|&\\t\\[\\] ]", "_");
+													path = path.toLowerCase();
+													fName = RegExUtils.replaceAll(fName, "[*/:\\[\\]\\\\|#%{}?&]", "_");
+													if(fName.lastIndexOf(".")>-1) {
+														String exp = fName.substring(fName.lastIndexOf("."),fName.length());
+														fName = fName.substring(0,fName.lastIndexOf("."))+exp.toLowerCase();
+													}
+													dval = path +"/"+ fName;
+												}catch(Exception e) {
+													System.out.println("dval :: " + dval);
+												}
+											}
 											dcrMap.put("val", dval);
+											dcrMap.put("ukey", locale+"_"+dcrType+"_"+Paths.get(dcrName).getFileName().toString().trim()+"_"+i);
+											did="";
+											dval="";
 											dcrList.add(dcrMap);
+											i++;
 										}
-										dval = "";
-										did = "";
 									}
+									
+									if(dcrXml.isEndElement()) {
+										if(id.equals("productBasic")) {
+											pr = "N";
+											fs = 0;
+										}
+										if(id.lastIndexOf("/")>0) {
+											id = StringUtils.replace(id, id.substring(id.lastIndexOf("/"), id.length()), "");
+										}else {
+											id = "";
+										}
+									}
+									
 								}
-								
-								if(dcrXml.isEndElement()) {
-									if(id.lastIndexOf("/")>0) {
-										id = StringUtils.replace(id, id.substring(id.lastIndexOf("/"), id.length()), "");
-									}else {
-										id = "";
+							}else if(dcrType.equals("supportProduct")) {
+								while(reader2.hasNext()) {
+									dcrXml = reader2.nextEvent();
+									if(dcrXml.isStartElement()) {
+										if(id.equals("")) {
+											id += dcrXml.asStartElement().getName().toString().equals("Root") ? "" : dcrXml.asStartElement().getName().toString();
+										}else {
+											id += "/"+dcrXml.asStartElement().getName().toString();
+										}
 									}
+									
+									if(p.getProperty(id)!= null) {
+										if(dcrXml.isStartElement()) {
+											if(id.equals("b2cSupportLink")) {
+												type = "b2c";
+											}else if(id.equals("b2bSupportLink")) {
+												type = "b2b";
+											}else if(id.equals("supportOption")) {
+												type = "sup";
+											}
+										}else if(dcrXml.isCharacters()) {
+											dval += dcrXml.toString();
+										}else {
+											dcrMap = new HashMap<String,String>();
+											did = p.getProperty(id);
+											
+											if(type.equals("b2c")) {
+												did = StringUtils.replace(did, "{1}", "item"+b2b2c);
+												did = StringUtils.replace(did, "{2}", (b2b2c+1)+"");
+											}else if(type.equals("b2b")) {
+												did = StringUtils.replace(did, "{1}", "item"+b2b2c);
+												did = StringUtils.replace(did, "{2}", (b2b2c+1)+"");
+											}else if(type.equals("sup")) {
+												did = StringUtils.replace(did, "{1}", "item"+sup);
+												did = StringUtils.replace(did, "{2}", (sup+1)+"");
+											}
+											
+											
+											if(id.equals("b2cSupportLink")) {
+												dval="b2c";
+												b2b2c++;
+											}else if(id.equals("b2bSupportLink")) {
+												dval="b2b";
+												b2b2c++;
+											}else if(id.equals("supportOption")) {
+												sup++;
+											}
+											
+											if(!did.equals("")) {
+												dcrMap.put("locale", locale.toUpperCase());
+												dcrMap.put("dcrName", dcrName);
+												dcrMap.put("attr", did);
+												dcrMap.put("val", dval);
+												dcrMap.put("ukey", locale+"_"+dcrType+"_"+Paths.get(dcrName).getFileName().toString().trim()+"_"+i);
+												dcrList.add(dcrMap);
+												i++;
+											}
+											dval = "";
+											did = "";
+										}
+									}
+									
+									if(dcrXml.isEndElement()) {
+										if(id.lastIndexOf("/")>0) {
+											id = StringUtils.replace(id, id.substring(id.lastIndexOf("/"), id.length()), "");
+										}else {
+											id = "";
+										}
+									}
+									
 								}
 								
 							}
+							System.out.println("dcrList size :::: " + dcrList.size());
+							System.out.println("--------------------------------------------------------------"+pageName+"------------------------------END-----------------------------------");
 							
-						}
-						System.out.println("dcrList size :::: " + dcrList.size());
-						System.out.println("--------------------------------------------------------------"+pageName+"------------------------------END-----------------------------------");
-						
-						}catch(FileNotFoundException e) {
-							e.printStackTrace();
-							System.out.println("파일없음 :: ");
-	//						insertHistoryDB(pstmt2,pageName,"N",locale);
-							continue;
-						}
-					} // For END
-					for(Map<String,String> d : dcrList) {
-						System.out.println(" name ::: " + d.get("dcrName") + " ::: attr ::: " + d.get("attr") + " ::: val :::: " + d.get("val"));
-					}
-					
-					insertDB(conn,dcrList);
-        			}
-        		}
+							}catch(FileNotFoundException e) {
+								e.printStackTrace();
+								System.out.println("파일없음 :: ");
+								continue;
+							}
+						} // For END
+						/*
+							for(Map<String,String> d : dcrList) {
+								System.out.println(" name ::: " + d.get("dcrName") + " ::: attr ::: " + d.get("attr") + " ::: val :::: " + d.get("val"));
+							}
+						*/
+						insertDB(conn,dcrList);
+	        			}
+	        		}
+	        		defaultDCRPath = getMessage("defaultDCRPath",p);
+	        	}
+        	}else {
+        		System.out.println("defaultDCRPath가 비어있습니다.");
         	}
         	
         	if (conn != null && !conn.isClosed()) {
@@ -320,16 +311,35 @@ public class Dcr
 		}
 	}
 	
+	
+    public static String getMessage(String code, Properties pro) {
+        String result="";
+        try
+        {
+            result = new String(pro.getProperty(code).getBytes("ISO-8859-1"), "utf-8");
+            
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return result;
+    }
+	
+
+	
 	public static void insertDB(Connection conn, ArrayList<Map<String,String>> dcrList) {
 		try {
 			System.out.println(" DB 시작 !");
-			String insertDCRSql = "INSERT INTO mig_pdp_dcr(locale, path, attr, val, create_date) VALUES(?, ?, ?, ?, SYSDATE());";
+			String insertDCRSql = "INSERT INTO mig_pdp_dcr(locale, path, attr, val, create_date, ukey) VALUES(?, ?, ?, ?, SYSDATE(),?) ON DUPLICATE KEY UPDATE locale=?, attr=?, val=?,modify_date=SYSDATE();";
 			PreparedStatement pstmt = conn.prepareStatement(insertDCRSql);
 			for(Map<String,String> dcr : dcrList) {
 				pstmt.setString(1, dcr.get("locale"));
 				pstmt.setString(2, dcr.get("dcrName"));
 				pstmt.setString(3, dcr.get("attr"));
 				pstmt.setString(4, dcr.get("val"));
+				pstmt.setString(5, dcr.get("ukey"));
+				pstmt.setString(6, dcr.get("locale"));
+				pstmt.setString(7, dcr.get("attr"));
+				pstmt.setString(8, dcr.get("val"));
 				pstmt.addBatch();
 				pstmt.clearParameters();
 			}
@@ -340,21 +350,6 @@ public class Dcr
 		}
 		System.out.println(" DB 끝 !");
 	}
-	
-	public static void insertHistoryDB(PreparedStatement pstmt, String pageName, String status, String locale) {
-//		String sql = "INSERT INTO MIG_PDP_EXTRACT_STATUS(page,status,locale,creation_date) VALUES(?,?,?,SYSDATE()) ON DUPLICATE KEY UPDATE page=?,status=?,locale=?,modify_date=SYSDATE();";
-		try {
-//			pstmt = conn.prepareStatement(sql);
-			pstmt.setString(1, pageName);
-			pstmt.setString(2, status);
-			pstmt.setString(3, locale);
-			pstmt.setString(4, pageName);
-			pstmt.setString(5, status);
-			pstmt.setString(6, locale);
-			pstmt.execute();
-		}catch(SQLException e) {
-			e.printStackTrace();
-		}
-	}
+
   
 }
